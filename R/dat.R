@@ -1,7 +1,8 @@
 #################################################################################
 ##
 ## Author:  Nat Goodman
-## Created: 20-01-17
+## Created: 20-02-26
+##          from frecl/dat.R created 20-01-17
 ##          from misg/datman.R created 19-01-01
 ##          from repwr/R/datman.R created 18-05-03
 ##
@@ -13,31 +14,26 @@
 ## file at https://github.com/natgoodman/NewPro/FDR/LICENSE 
 ##
 #################################################################################
-## ---- Read Free Cell input files ----
-## input formats vary a bit, so need separate code
-read_frecl=function(what=1,file=NULL) {
-  library(readr);
-  if (is.null(file)) file=filename(param(indir),paste0('free_cell_',what,'.csv'))
-  else what=gsub('^.*free_cell_|\\.csv','',file);
-  frecl=read.csv(file,stringsAsFactors=F);
-  colnames(frecl)=tolower(colnames(frecl));
-  cols=cq(score,rank,total);
-  for (col in cols) frecl[,col]=parse_number(frecl[,col]);
-  if (what %in% cq(4,5)) {
-    ## fill blank DateTime fields with value above
-    for (i in 2:nrow(frecl))
-      if (is_blank(frecl[i,'datetime'])) frecl[i,'datetime']=frecl[i-1,'datetime'];
-    ## convert datetime to date
-    frecl[,'date']=parse_date(frecl[,'datetime'],"%m/%d/%Y %H:%M %p");
-    cols=c('date',cols);
-  }
-  frecl[,cols];
+## ---- Read files derived from tables in the paper ----
+## input formats vary, so need separate code
+## table1 derived by copy-and-paste of PDF table, some hand massaging,
+##   small programatic processing by tool/table1.pl, and further hand massaging
+read_table1=function(file=NULL) {
+  if (is.null(file)) file=filename(param(indir),param(table1));
+  table1=read.csv(file,stringsAsFactors=F,skip=1,header=T)
+  colnames(table1)[1]='Label';
+  table1;
 }
-
+read_table2=function(file=NULL) {
+  if (is.null(file)) file=filename(param(indir),param(table2));
+  table2=read.csv(file,stringsAsFactors=F,skip=0,header=T)
+  colnames(table2)[1]='Label';
+  table2;
+}
 
 ## ---- Save and Load ----
 ## save data in RData and optionally txt formats
-save_=function(data,file,save,save.txt=F) {
+save_=function(data,file,save,save.txt=FALSE) {
   if ((is.na(save)&!file.exists(file))|(!is.na(save)&save)) {
     base=desuffix(file);
     save(data,file=filename(base=base,suffix='RData'));
@@ -95,12 +91,14 @@ get_data=load_data;
 ### save, get, other manipulation
 ##
 ## save regular sim file
-save_sim=function(sim,...,what,file=NULL) {
+save_sim=function(sim,...,what,file=NULL,dir_create=TRUE) {
   ## what=as.character(pryr::subs(what));
   param(save.sim,save.txt.sim);
   if (is.null(file)) {
-    tail=nvq_file(DOTS=match.call(expand.dots=FALSE)$...);
-    file=filename_sim(what,tail=tail);
+    simdir=dirname_sim(what);
+    if (!dir.exists(simdir)&&dir_create) dir.create(simdir);
+    ### tail=nvq_file(DOTS=match.call(expand.dots=FALSE)$...);
+    file=filename_sim(what,simdir=simdir,...);
   }
   save_(sim,file,save=save.sim,save.txt=save.txt.sim);
 }
@@ -121,10 +119,11 @@ load_sim=get_sim=function(...,what,file=NULL) {
   load_(file,'sim');
 }
 ## consolidate inner loop sim files. file is name of output (permanent) sim file
-cat_sim=function(...,what,file=NULL) {
+cat_sim=function(...,what,file=NULL,dir_create=TRUE) {
   if (is.null(file)) {
-    tail=nvq_file(DOTS=match.call(expand.dots=FALSE)$...);
-    file=filename_sim(what,tail=tail);
+    simdir=dirname_sim(what);
+    if (!dir.exists(simdir)&&dir_create) dir.create(simdir);
+    file=filename_sim(what,...,simdir=simdir);
   }
   pattern=sub('^sim\\.','^sim\\.i=[0-9]+\\.',basename(file));
   files=list.files(param(tmpdir),full.names=T,pattern=pattern);
@@ -134,12 +133,11 @@ cat_sim=function(...,what,file=NULL) {
   invisible(sim);
 }
 ### filenames
-filename_sim=function(what,...,tail=NULL) {
+filename_sim=function(what,...,simdir=dirname_sim(what),tail=NULL) {
   if (is.null(tail)) tail=nvq_file(DOTS=match.call(expand.dots=FALSE)$...);
-  ## DOTS=c(match.call(expand.dots=FALSE)$...,unlist(DOTS));
-  dir=param(list=paste(sep='.','sim',what,'dir'));
-  filename(dir,basename_sim(tail=tail));
+  filename(simdir,basename_sim(tail=tail));
 }
+dirname_sim=function(what) filename(param(datadir),paste(sep='.','sim',what));
 filename_sim_tmp=function(...,tail=NULL) {
   if (is.null(tail)) tail=nvq_file(DOTS=match.call(expand.dots=FALSE)$...);
   filename(param(tmpdir),basename_sim(tail=tail));
@@ -150,26 +148,9 @@ basename_sim=function(...,tail=NULL) {
   filename(base=base,tail=tail,suffix='RData');
 }
 ## load (aka get) specific sim file type. wrappers for load_sim.
-## TODO: replace by generic load_sim
-load_sim_rand=get_sim_rand=function(file=NULL,n) load_sim(n,what='rand',file=file);
-load_sim_fixd=get_sim_fixd=function(file=NULL,n,d) load_sim(n,d,what='fixd',file=file);
-load_sim_hetd=get_sim_hetd=function(file=NULL,n,d,sd) load_sim(n,d,sd,what='hetd',file=file);
+load_sim_hyper=get_sim_hyper=function(g1,g2,n,m=param(m.sim),file=NULL)
+  load_sim(g1,g2,n,m,what='hyper',file=file);
 
-##### interp_hetd. interp is approx data, NOT function, 'cuz it's dangerour to save approxfun
-save_interp_hetd=function(interp,n,d,sd,file=NULL) {
-  param(save.interp,save.txt.interp);
-  if (is.null(file))
-    file=filename(param(interp.hetd.dir),base='interp',
-                  tail=paste(sep=',',paste_nv(n),paste_nv(d,d_pretty(d)),sd_pretty(sd)));
-  save_(interp,file,save=save.interp,save.txt=save.txt.interp);
-}
-load_interp_hetd=get_interp_hetd=function(file=NULL,n,d,sd) {
-  if (is.null(file))
-    file=filename(param(interp.hetd.dir),base='interp',
-                  tail=paste(sep=',',paste_nv(n),paste_nv(d,d_pretty(d)),sd_pretty(sd)));
-  interp=load_(file,'interp');
-  approxfun(interp)
-}
 ##### table - saved in tbldir
 save_tbl=function(tbl,file,obj.ok=F) {
   param(save.tbl,save.txt.tbl);
@@ -242,5 +223,6 @@ desuffix=function(file,suffix=c('RData','txt')) {
 ## filebasename same as filename but w/o suffix
 filebasename=function(...) filename(...,suffix=NULL)
 ## construct directory pathname. synonym for filebasename
-dirname=filebasename;
+## Sigh. unfortunate choice of name as it masks base::dirname
+## dirname=filebasename;
 

@@ -346,7 +346,7 @@ is_blank=function(x) (x=='')|is.null(x)|is.na(x)
 is_subset=function(x,y) all(x %in% y)
 is_superset=function(x,y) all(y %in% x)
 ## test if x is an object of givrn class
-is_class(x,class) x %in% class(x)
+is_class=function(x,class) x %in% class(x)
 
 ## round up or down to nearest multiple of u. from https://grokbase.com/t/r/r-help/125c2v4e14/
 round_up=function(x,u) ceiling(x/u)*u;
@@ -401,9 +401,9 @@ BREAKPOINT=function(...,text="",condition=NULL,expr=TRUE,skipCalls=0L) {
 ## traceback with args I like
 tback=function(max.lines=2) traceback(max.lines=max.lines)
 devs.close=function() for (dev in dev.list()) dev.off(dev)
-## display color palette
-pal=function(col,border="light gray",...) {
- n=length(col)
- plot(0,0,type="n",xlim=c(0,1),ylim=c(0,1),axes=FALSE,xlab="",ylab="",...)
- rect(0:(n-1)/n,0,1:n/n,1,col=col,border=border)
-}
+## display color palette - moved to plot_util.R
+## pal=function(col,border="light gray",...) {
+##  n=length(col)
+##  plot(0,0,type="n",xlim=c(0,1),ylim=c(0,1),axes=FALSE,xlab="",ylab="",...)
+##  rect(0:(n-1)/n,0,1:n/n,1,col=col,border=border)
+## }

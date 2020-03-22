@@ -19,7 +19,7 @@
 #################################################################################
 ## SOURCE=c('R/util.R','R/datman.R','R/doc.R','R/init.R','R/stats.R');
 ## SOURCE=c('R/util.R','R/init.R','R/doc_hiddn.R');
-SOURCE=c('R/util.R','R/init.R');
+SOURCE=c('R/util.R','R/init.R','R/dat.R','R/doc.R');
 
 ## ---- source the files ----
 ## source default files. assume README doc until init runs
@@ -46,7 +46,7 @@ source_all=function(files=SOURCE) {
   source_files(files);
   ## source dat_XXX, doc_XXX files so top level functions defined
   ## NOTE: these top level functions call init which re-sources doc-specific files
-  source_files(list.files('R',pattern='^(doc_|dat_).*.R',full.names=T));
-  if (exists('param.env')) source_doc();
+  if (exists('param.env')) source_doc()
+  else source_files(list.files('R',pattern='^(doc_|dat_).*.R',full.names=T));
 }
 source_all();
