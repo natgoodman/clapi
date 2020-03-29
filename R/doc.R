@@ -161,7 +161,8 @@ tbllabel=function(where=cq(content,filename)) {
   }
   pfx=if(sectpfx) paste(collapse='',c(tblpfx,sectnum)) else tblpfx;
   sfx=if(!is.null(tblblk)) lblsfx(tblblk,tblsfx) else NULL;
-  paste(collapse='-',c(pfx,paste(collapse='',c(tblnum,sfx))));
+  if (where=='filename') paste(collapse='',c(pfx,tblnum,sfx))
+  else paste(collapse='-',c(pfx,paste(collapse='',c(tblnum,sfx))));
 }
 ## construct label suffix. handles big blk nums - arise in doc_ovrhtsupp
 lblsfx=function(i,sfx) {
@@ -182,9 +183,9 @@ lblsfx=function(i,sfx) {
 sect_start=function(sect,sect.all,blk=FALSE) {
   ## compute section number. from stackoverflow.com/questions/5577727
   sectnum=which(sect==sect.all)[1];
-  ## reset fignum if we're doing section-specific numbering else set to sectnum
+  ## reset fignum & tblnum if we're doing section-specific numbering else set to sectnum
   if (param(sectpfx)) fignum=1 else fignum=sectnum;
-  param(sect=sect,sectnum=sectnum,fignum=fignum);
+  param(sect=sect,sectnum=sectnum,fignum=fignum,tblnum=fignum);
   ## blk controls whether each section is a block
   if (blk) param(figblk=1,tblblk=1,xfigblk=1) 
   else param(figblk=NULL,tblblk=NULL,xfigblk=NULL)
