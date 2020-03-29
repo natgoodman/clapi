@@ -14,18 +14,91 @@
 ## file at https://github.com/natgoodman/NewPro/FDR/LICENSE 
 ##
 #################################################################################
+library(RColorBrewer);
 ## ---- Plot Utility Functions ----
-## display color palette - used to be in util.R
-pal=function(col,border="light gray",...) {
- n=length(col)
- plot(0,0,type="n",xlim=c(0,1),ylim=c(0,1),axes=FALSE,xlab="",ylab="",...)
- rect(0:(n-1)/n,0,1:n/n,1,col=col,border=border)
-}
 ## auto-scale title
 cex_title=function(title) {
   xyplt=par('plt');                     # dimensions of plot region
   xplt=xyplt[2]-xyplt[1];               # width of plot region
   min(1,xplt/strwidth(title,units='fig'));
+}
+
+## draw one or more legends. adapted from misig/multi_legend, repwr/ragm_legend
+## legends is list of legend.args - arguments to my legend wrapper
+##   or equivalently base R legend
+## where, x, y are starting position
+##   where can be keyword (eg, 'right'), coordinate (used as x), or vector of x, y
+##   vector is typically from previous call
+## others used as defaults in each legend
+add_legend=
+  function(legends,where=NULL,x=NULL,y=NULL,cex=0.8,bty='n',
+           title=NULL,title.col='black',
+           col='black',lty='solid',lwd=1,labels=NULL,legend=labels,...) {
+    if (length(where)==1) x=where;
+    if (length(where)==2) {x=where[1]; y=where[2];}
+    default.args=
+      list(cex=cex,bty=bty,title=title,title.col=title.col,col=col,lty=lty,lwd=lwd,
+           ...);
+    if (missing(legends)) do.call(legend_,c(list(x=x,y=y,legend=legend),default.args))
+    else {
+      sapply(legends,function(legend.args) {
+        if (is.null(legend.args)) return();
+        legend.args=fill_defaults(default.args,c(list(x=x,y=y),legend.args));
+        where.next=do.call(legend_,legend.args);
+        ## <<- assigns to variables in outer scope, ie, function scope
+        ##   from stackoverflow.com/questions/13640157. Thanks!
+        ## could also use, eg, assign('x',where.next[1],envir=parent.frame(n=3))
+        x<<-where.next[1];
+        y<<-where.next[2];
+      })}
+    ## invisible();
+    c(x,y);
+  }
+## draw one legend. wrapper for base R legend 
+## adapted from misig/plotm_legend, repwr/mesr_legend
+## labels and legend are synonyms
+legend_=
+  function(x,y,cex=0.8,bty='n',title=NULL,title.col='black',
+           col='black',lty='solid',lwd=1,labels=NULL,legend=labels,...) {
+    if (is.null(legend)) return();      # nothing to draw
+    where.next=graphics::legend(x,y,bty=bty,legend=legend,cex=cex,col=col,lwd=lwd,lty=lty,
+                                title=title,title.col=title.col,...);
+    x=where.next$rect$left;
+    y=where.next$rect$top-where.next$rect$h;
+    c(x,y);
+  }
+## remove single-valued xvars from xdata and put in title
+xdata_xtitle=function(xdata,xtitle) {
+  if (xtitle=='none') xtitle=NULL
+  else {
+    ## find single valued xvars we want
+    xvars=colnames(xdata);          # start with all of 'em
+    if (xtitle=='n') {xvars=grep('^n',xvars,value=T)}
+    else if (xtitle=='d') {xvars=grep('^d',xvars,value=T)}
+    else if (xtitle!='auto') {xvars=xtitle};
+    x.single=do.call(
+      c,sapply(xvars,simplify=F,
+               function(x) {xval=unique(xdata[[x]]); if (length(xval)==1) xval}));
+    ## remove single-valued vars from xdata and put in title
+    if (!is.null(x.single)) {
+      ## remove vars from xdata without converting one column data frame into vector (sigh...)
+      ## from stackoverflow.com/questions/4605206
+      xdata=within(xdata,rm(list=names(x.single)));
+      ## coalesce pairs with same values
+      x.n=x.single[grep('^n',names(x.single),value=T)];
+      x.d=x.single[grep('^d',names(x.single),value=T)];
+      if (length(x.n)==2 && length(unique(x.n))==1) x.n=c(n=unique(x.n));
+      if (length(x.d)==2 && length(unique(x.d))==1) x.d=c(d=unique(x.d));
+      ## format values as we want them
+      x.n=sapply(x.n,n_pretty);
+      x.d=sapply(x.d,d_pretty);
+      x.single=c(x.n,x.d);
+      ## finally turn it all into a string
+      xtitle=paste(collapse=', ',paste(sep='=',names(x.single),x.single));
+    } else {
+      xtitle=NULL;
+    }}
+  list(xdata=xdata,xtitle=xtitle);
 }
 ## make colors from RColorBrewer palettes
 ## palettes - RColorBrewer palette names
@@ -43,6 +116,8 @@ col_brew=function(palettes,n=0,names=NULL,skip=2,dark.first=TRUE) {
   ## col=do.call(c,lapply(1:length(palettes),
   ##                      function(i) col_brew_(palettes[i],ns[i],skip,dark.first)));
   col=do.call(c,col_brew_(palettes,ns,skip,dark.first));
+  # if too many colors, use 1st n
+  if (n<length(col)) col=head(col,n);
   setNames(col,names);
 }
 col_brew_=Vectorize(function(pal,n,skip,dark.first) {
@@ -59,3 +134,49 @@ col_brew_=Vectorize(function(pal,n,skip,dark.first) {
   if (n>length(col)) col=colorRampPalette(col)(n);
   col;
 },vectorize.args=cq(pal,n),SIMPLIFY=FALSE,USE.NAMES=FALSE);
+
+## empty plot - just title & axes
+plotempty=
+  function(title='',cex.title='auto',xlab='x',ylab='y',xlim=c(0,1),ylim=c(0,1),
+           xaxp=c(xlim,1),yaxp=c(ylim,1),...) {
+    if (is.null(cex.title)|cex.title=='auto') cex.title=cex_title(title);
+    plot(x=NULL,y=NULL,type='n',main=title,cex.main=cex.title,xlab=xlab,ylab=ylab,
+         xlim=xlim,ylim=ylim,xaxp=xaxp,yaxp=yaxp,...);
+    xylim=par('usr');                   # limits of disply region
+    xmid=mean(xylim[1:2]);
+    ymid=mean(xylim[3:4]);
+    text(xmid,ymid,'PLOT DELIBERATELY LEFT BLANK',adj=c(0.5,0.5));
+    invisible();
+}
+## helper functions to plot horizontal and vertical line segments
+vhline=function(vline=NULL,hline=NULL,vlab=TRUE,hlab=TRUE,vhdigits=2,col=NA,cex=0.75,...) {
+  xylim=par('usr');
+  vline=vline[which(between(vline,xylim[1],xylim[2]))];
+  hline=hline[which(between(hline,xylim[3],xylim[4]))];
+  abline(v=vline,h=hline,col=col,...);
+  ## write vhline values along axes
+  vline=vline[vlab];
+  if (length(vline)>0)
+    mtext(round(vline,vhdigits),side=1,at=vline,col=col,line=0.25,cex=cex*par('cex'));
+  hline=hline[hlab];
+  if (length(hline)>0)
+    mtext(round(hline,vhdigits),side=2,at=hline,col=col,line=0.25,cex=cex*par('cex'));
+}
+hline=
+  function(y,x0=0,x,col='black',lty='solid',lwd=1,cex=0.75,text=NULL,
+           label=list(text=text,side=2,at=y,col=col,line=0.25,cex=cex*par('cex'),las=1)) {
+    segments(x0=x0,x1=x,y0=y,y1=y,col=col,lty=lty,lwd=lwd);
+    if (!is.null(text)) do.call(mtext,label);
+  }
+vline=
+  function(x,y0=0,y,col='black',lty='solid',lwd=1,cex=0.75,text=NULL,
+           label=list(text=text,side=1,at=x,col=col,line=0.25,cex=cex*par('cex'),las=1)) {
+    segments(x0=x,x1=x,y0=y0,y1=y,col=col,lty=lty,lwd=lwd);
+    if (!is.null(text)) do.call(mtext,label);
+  }
+## display color palette - from util.R
+pal=function(col,border="light gray",...) {
+ n=length(col)
+ plot(0,0,type="n",xlim=c(0,1),ylim=c(0,1),axes=FALSE,xlab="",ylab="",...)
+ rect(0:(n-1)/n,0,1:n/n,1,col=col,border=border)
+}
