@@ -14,10 +14,9 @@
 ##
 #################################################################################
 library(BiasedUrn);
-library(RColorBrewer);
 ## -- Analyze data from taxpayer outreach paper --
 doc_nudge=function(sect=NULL,TRN=FALSE,plaus.cutoff=0.05) {
-  sect.all=cq(hyper,binom);
+  sect.all=cq(hyper,binom,plotm,plotq);
   if (is.null(sect)) sect=sect.all else sect=pmatch_choice(sect,sect.all);
   sapply(sect,function(sect) {
     sect_start(sect,sect.all);
@@ -35,14 +34,14 @@ doc_nudge=function(sect=NULL,TRN=FALSE,plaus.cutoff=0.05) {
       ## The pvalues are impressively low (4e-141 to 2e-03) indicating the NULL
       ##   hypothesis is quite implausible. The m11 cases has the biggest pvalue;
       ##   arguably, for this case, the NULL is almost plausible
-      pval.hyper=nudge;
-      dotbl(pval.hyper);
+      pval=nudge;
+      dotbl(pval);
       ## stage 2. compute selection odds and plausibility limits using
       ##  biased urn, aka noncentral hypergeometric distribution.
       ##  convert odds plaus limits to coverage plaus limits
       nudge$odds=with(nudge,odds_hyper(mu=cvr.treated,m1=n.treated,m2=n.control,n=cvr.all));
-      odds.hyper=nudge;
-      dotbl(odds.hyper);
+      odds=nudge;
+      dotbl(odds);
       ## stage 3. compute plausibility limits on odds and coverage
       plodds=with(nudge,plodds_hyper(mu=cvr.treated,m1=n.treated,m2=n.control,n=cvr.all,
                                      plaus.cutoff=plaus.cutoff));
@@ -51,15 +50,16 @@ doc_nudge=function(sect=NULL,TRN=FALSE,plaus.cutoff=0.05) {
       cvr.treated.hi=with(nudge,mean_hyper(m1=n.treated,m2=n.control,n=cvr.all,odds=odds.hi));
       nudge$cvr.treated.lo=round(cvr.treated.lo);
       nudge$cvr.treated.hi=round(cvr.treated.hi);
-      plaus.hyper=nudge;
-      dotbl(plaus.hyper);
+      plaus=nudge;
+      dotbl(plaus);
       ## stage 4. try to explain difference between groups by imbalance of
       ##   some unknown confound. compute necessary imbalance assuming
       ##   most extreme case where every subject with confound gets
       ##   coverage
       t1.rate=seq(0.1,1,by=0.1);
       c1.rate=sapply(t1.rate,function(t1.rate)
-        with(nudge,c1_rate(n.all,n.treated,n.control,cvr.all,cvr.treated,cvr.control,t1.rate)));
+        with(nudge,
+             c1_rate(n.all,n.treated,n.control,cvr.all,cvr.treated,cvr.control,t1.rate)));
       colnames(c1.rate)=t1.rate;
       rownames(c1.rate)=rownames(nudge);
       c1t1.imbalance=sapply(t1.rate,function(t1.rate) c1.rate[,as.character(t1.rate)]/t1.rate);
@@ -71,7 +71,7 @@ doc_nudge=function(sect=NULL,TRN=FALSE,plaus.cutoff=0.05) {
       t1=t1.ratem*nudge$n.treated;               # size of each t1 cell
       c1=c1.rate*nudge$n.control;                # size of each c1 cell
       n1=t1+c1;                                  # number of 'balls' selected
-      pval.imbalance=with(nudge,phyper(t1,n.treated,n.control,n1,lower=F));
+      pval.imbalance=with(nudge,phyper(t1,n.treated,n.control,n1,lower=FALSE));
       colnames(pval.imbalance)=t1.rate;
       dotbl(pval.imbalance);
     }
@@ -91,23 +91,64 @@ doc_nudge=function(sect=NULL,TRN=FALSE,plaus.cutoff=0.05) {
       ## The m6_10 and m11 cases have non-sig p-values (0.1,0.3); arguably, for these cases,
       ##   the NULL is almost plausible. For these cases 'cvr.all' is nearly everyone
       ##   which perforce drives the p-value up
-      pval.binom=nudge;
-      dotbl(pval.binom);
-    } 
+      pval=nudge;
+      dotbl(pval);
+      ## stage 2. compute selection odds and plausibility limits 
+      ##  convert odds plaus limits to coverage plaus limits
+      nudge$odds=with(nudge,odds_binom(mu=cvr.treated,m1=n.treated,m2=n.control,n=cvr.all));
+      odds=nudge;
+      dotbl(odds);
+      ## stage 3. compute plausibility limits on odds and coverage
+      plodds=with(nudge,plodds_binom(mu=cvr.treated,m1=n.treated,m2=n.control,n=cvr.all,
+                                     plaus.cutoff=plaus.cutoff));
+      nudge$odds.lo=plodds[1,]; nudge$odds.hi=plodds[2,];
+      cvr.treated.lo=with(nudge,mean_binom(m1=n.treated,m2=n.control,n=cvr.all,odds=odds.lo));
+      cvr.treated.hi=with(nudge,mean_binom(m1=n.treated,m2=n.control,n=cvr.all,odds=odds.hi));
+      nudge$cvr.treated.lo=round(cvr.treated.lo);
+      nudge$cvr.treated.hi=round(cvr.treated.hi);
+      plaus=nudge;
+      dotbl(plaus);
+      ## stage 4. try to explain difference between groups by imbalance of
+      ##   some unknown confound. compute necessary imbalance assuming
+      ##   most extreme case where every subject with confound gets
+      ##   coverage
+      ## CAUTION: I don't know how to do this right, ie, with multinomial distr
+      ##   Instead, approximate with hyper with many more balls in urn
+      t1.rate=seq(0.1,1,by=0.1);
+      c1.rate=sapply(t1.rate,function(t1.rate)
+        with(nudge,
+             c1_rate(n.all*100,n.treated*100,n.control*100,
+                     cvr.all,cvr.treated,cvr.control,t1.rate)));
+      colnames(c1.rate)=t1.rate;
+      rownames(c1.rate)=rownames(nudge);
+      c1t1.imbalance=sapply(t1.rate,function(t1.rate) c1.rate[,as.character(t1.rate)]/t1.rate);
+      colnames(c1t1.imbalance)=t1.rate;
+      dotbl(c1t1.imbalance);
+      ## TODO. really should use same c1.rate for all nudge-rows
+      ## compute pvals for imbalance
+      t1.ratem=repr(rbind(t1.rate),nrow(nudge)); # extend t1.rate into matrix
+      t1=t1.ratem*nudge$n.treated;               # size of each t1 cell
+      c1=c1.rate*nudge$n.control;                # size of each c1 cell
+      n1=t1+c1;                                  # number of 'balls' selected
+      pval.imbalance=with(nudge,pbinom(round(t1),round(n1),n.treated/n.all,lower=FALSE));
+      colnames(pval.imbalance)=t1.rate;
+      dotbl(pval.imbalance);
+    }
+##### plotm. line graphs comparing the distributions
+   if (sect=='plotm') {
+     load_data(nudge);
+     sapply(rownames(nudge),function(case)
+       dofig(plotm_nudge,case,nudge=nudge[case,],title='Cumulative probability'));
+   }
+##### plotq. QQ plots comparing the distributions
+    if (sect=='plotq') {
+      load_data(nudge);
+      sapply(rownames(nudge),function(case)
+        dofig(plotq_nudge,case,nudge=nudge[case,],title='Cumulative probability'));
+    }
   });
   sect;
 }
-c1_rate=Vectorize(function(n.all,n.treated,n.control,cvr.all,cvr.treated,cvr.control,t1.rate) {
-  odds=c(1,100,1,100);
-  uniroot(function(c1.rate) {
-    c1=round(c1.rate*n.control);
-    c0=n.control-c1;
-    t1=round(t1.rate*n.treated);
-    t0=n.treated-t1;
-    mu=meanMFNCHypergeo(m=c(c0,c1,t0,t1),n=cvr.all,odds=odds);
-    mu[1]+mu[2]-cvr.control;
-  },interval=c(0,1))$root;
-})
 
 ## TODO (maybe): move into stats.R or stats_nudge.R
 ## wrappers for BiasedUrn functions. only need Fisher versions
@@ -115,21 +156,82 @@ c1_rate=Vectorize(function(n.all,n.treated,n.control,cvr.all,cvr.treated,cvr.con
 odds_hyper=Vectorize(oddsFNCHypergeo);
 mean_hyper=Vectorize(meanFNCHypergeo);
 ## plausibility limit (aka confidence interval) on adds
-plodds_hyper=function(mu,m1,m2,n,simplify=TRUE,plaus.cutoff=0.05) {
-  pl=plodds_hyper_(mu,m1,m2,n,plaus.cutoff);
+plodds_hyper=function(mu,m1,m2,n,simplify=TRUE,plaus.cutoff=0.05,interval=c(0.5,1.5)) {
+  pl=plodds_hyper_(mu,m1,m2,n,plaus.cutoff,interval);
   if (simplify&ncol(pl)==1) pl=as.vector(pl);
   pl;
 }
-plodds_hyper_=Vectorize(function(mu,m1,m2,n,plaus.cutoff=0.05) {
+plodds_hyper_=Vectorize(function(mu,m1,m2,n,plaus.cutoff=0.05,interval=c(0.5,1.5)) {
   p0=plaus.cutoff/2; p1=1-p0;
   lo=suppressWarnings(
     uniroot(function(odds) pFNCHypergeo(mu,m1,m2,n,odds=odds,lower.tail=FALSE)-p0,
-            interval=c(0.5,1.5))$root);
+            interval=interval)$root);
   hi=suppressWarnings(
     uniroot(function(odds) pFNCHypergeo(mu,m1,m2,n,odds=odds,lower.tail=FALSE)-p1,
-            interval=c(0.5,1.5))$root);
+            interval=interval)$root);
   c(lo,hi);
-})
+},vectorize.args=cq(mu,m1,m2,n,plaus.cutoff))
+
+c1_rate=
+  Vectorize(function(n.all,n.treated,n.control,cvr.all,cvr.treated,cvr.control,t1.rate) {
+    odds=c(1,100,1,100);
+    uniroot(function(c1.rate) {
+      c1=round(c1.rate*n.control);
+      c0=n.control-c1;
+      t1=round(t1.rate*n.treated);
+      t0=n.treated-t1;
+      mu=meanMFNCHypergeo(m=c(c0,c1,t0,t1),n=cvr.all,odds=odds);
+      mu[1]+mu[2]-cvr.control;
+    },interval=c(0,1))$root;
+  })
+
+##### binom versions of the above. not terribly deep, but... 
+odds_binom=function(mu,m1,m2,n) {
+  prob=mu/n;
+  m2*prob/(m1*(1-prob));
+}
+mean_binom=function(m1,m2,n,odds=1) {
+  m1=odds*m1
+  prob=m1/(m1+m2);
+  ## round(n*prob);
+  n*prob;
+}
+## plausibility limit (aka confidence interval) on adds
+plodds_binom=function(mu,m1,m2,n,simplify=TRUE,plaus.cutoff=0.05,interval=c(0.01,10)) {
+  pl=plodds_binom_(mu,m1,m2,n,plaus.cutoff,interval=interval);
+  if (simplify&ncol(pl)==1) pl=as.vector(pl);
+  pl;
+}
+plodds_binom_=Vectorize(function(mu,m1,m2,n,plaus.cutoff=0.05,interval=c(0.01,10)) {
+  p0=plaus.cutoff/2; p1=1-p0;
+  lo=suppressWarnings(
+    uniroot(function(odds) {
+      m1=m1*odds;
+      pbinom(mu,n,m1/(m1+m2),lower.tail=FALSE)-p0;
+    },interval=interval)$root);
+  hi=suppressWarnings(
+    uniroot(function(odds) {
+      m1=m1*odds;
+      pbinom(mu,n,m1/(m1+m2),lower.tail=FALSE)-p1;
+    },interval=interval)$root);
+  c(lo,hi);
+},vectorize.args=cq(mu,m1,m2,n,plaus.cutoff))
+
+c1_rate_binom=
+  Vectorize(function(n.all,n.treated,n.control,cvr.all,cvr.treated,cvr.control,t1.rate) {
+    odds=c(1,100,1,100);
+    uniroot(function(c1.rate) {
+      c1=round(c1.rate*n.control);
+      c0=n.control-c1;
+      t1=round(t1.rate*n.treated);
+      t0=n.treated-t1;
+      ## WRONG! has to be multinomial
+      mu=mean_binom(m=c(c0,c1,t0,t1),n=cvr.all,odds=odds);
+      mu[1]+mu[2]-cvr.control;
+    },interval=c(0,1))$root;
+  })
+
+
 ## multivariate mean. NOT USED
 ##   m, odds vectors or matrices - if matrices, each column is a case
 ##   n single number or vector
@@ -248,5 +350,4 @@ foo=function(t1.rate=seq(0.1,1,by=0.1),odds=c(1,100,1,100)) {
     ## mean_hyperm(m=c(c0,c1,t0,t1),n=cvr.all,odds=odds,simplify=FALSE);
   })
   names(m)=t1.rate;
-  m;
 }
