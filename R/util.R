@@ -25,7 +25,7 @@ paste_nv=function(name,value,sep='=') {
 }
 ## generate list of name=value using values from parent environment. code adapted from base::rm
 ## IGNORE tells whether to ignore NULL and non-existant names
-nvq=function(...,sep=' ',IGNORE=F) {
+nvq=function(...,SEP=' ',IGNORE=F) {
   dots=match.call(expand.dots=FALSE)$...
    if (length(dots) &&
      !all(vapply(dots,function(x) is.symbol(x) || is.character(x),NA,USE.NAMES=FALSE))) 
@@ -40,7 +40,18 @@ nvq=function(...,sep=' ',IGNORE=F) {
   ## values=sapply(names,function(name)
   ##   if (exists(name,envir=parent.frame(n=2))) get(name,envir=parent.frame(n=2))
   ##   else stop(paste('no value for',name,'in parent environment')));
-  paste(collapse=sep,unlist(mapply(function(name,value)
+  paste(collapse=SEP,unlist(mapply(function(name,value)
+    if (!is.null(value)|!IGNORE) paste(sep='=',name,value) else NULL,names,values)));
+}
+## generate list of name=value using values from parent environment. code adapted from base::rm
+## IGNORE tells whether to ignore NULL and non-existant names
+nv=function(names,SEP=' ',IGNORE=F) {
+  env=parent.frame(n=1);
+  values=sapply(names,function(name) {
+    if (exists(name,envir=env)) get(name,envir=env)
+    else if (!IGNORE) stop(paste('no value for',name,'in parent environment'));
+  });
+  paste(collapse=SEP,unlist(mapply(function(name,value)
     if (!is.null(value)|!IGNORE) paste(sep='=',name,value) else NULL,names,values)));
 }
 ## NG 19-09-25: extend nvq for filenames. also to allow nested calls
@@ -366,7 +377,13 @@ pick=function(x,n.want,n.min=1,rep.ok=FALSE,exclude=NULL) {
     unname(quantile(x,probs=probs,type=1))
   };
 }
-
+## set names and length of object
+setNL=function(obj,nm,prefer.nm=TRUE) {
+  if (prefer.nm) obj=rep(obj,length.out=length(nm))
+  else nm=rep(nm,length.out=length(obj));
+  names(obj)=nm;
+  obj;
+}
 ## repeat rows or columns of 2-dimensional matrix-like object. like rep
 ## like rep, ... can be times, length.out, or each
 ## based on StackOverflow https://stackoverflow.com/questions/11121385/repeat-rows-of-a-data-frame
