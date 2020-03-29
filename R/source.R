@@ -19,7 +19,7 @@
 #################################################################################
 ## SOURCE=c('R/util.R','R/datman.R','R/doc.R','R/init.R','R/stats.R');
 ## SOURCE=c('R/util.R','R/init.R','R/doc_hiddn.R');
-SOURCE=c('R/util.R','R/init.R','R/dat.R','R/doc.R');
+SOURCE=c('R/util.R','R/init.R','R/dat.R','R/doc.R','R/plot_util.R');
 
 ## ---- source the files ----
 ## source default files. assume README doc until init runs
