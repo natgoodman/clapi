@@ -67,39 +67,6 @@ legend_=
     y=where.next$rect$top-where.next$rect$h;
     c(x,y);
   }
-## remove single-valued xvars from xdata and put in title
-xdata_xtitle=function(xdata,xtitle) {
-  if (xtitle=='none') xtitle=NULL
-  else {
-    ## find single valued xvars we want
-    xvars=colnames(xdata);          # start with all of 'em
-    if (xtitle=='n') {xvars=grep('^n',xvars,value=T)}
-    else if (xtitle=='d') {xvars=grep('^d',xvars,value=T)}
-    else if (xtitle!='auto') {xvars=xtitle};
-    x.single=do.call(
-      c,sapply(xvars,simplify=F,
-               function(x) {xval=unique(xdata[[x]]); if (length(xval)==1) xval}));
-    ## remove single-valued vars from xdata and put in title
-    if (!is.null(x.single)) {
-      ## remove vars from xdata without converting one column data frame into vector (sigh...)
-      ## from stackoverflow.com/questions/4605206
-      xdata=within(xdata,rm(list=names(x.single)));
-      ## coalesce pairs with same values
-      x.n=x.single[grep('^n',names(x.single),value=T)];
-      x.d=x.single[grep('^d',names(x.single),value=T)];
-      if (length(x.n)==2 && length(unique(x.n))==1) x.n=c(n=unique(x.n));
-      if (length(x.d)==2 && length(unique(x.d))==1) x.d=c(d=unique(x.d));
-      ## format values as we want them
-      x.n=sapply(x.n,n_pretty);
-      x.d=sapply(x.d,d_pretty);
-      x.single=c(x.n,x.d);
-      ## finally turn it all into a string
-      xtitle=paste(collapse=', ',paste(sep='=',names(x.single),x.single));
-    } else {
-      xtitle=NULL;
-    }}
-  list(xdata=xdata,xtitle=xtitle);
-}
 ## make colors from RColorBrewer palettes
 ## palettes - RColorBrewer palette names
 ## n - number of colors
