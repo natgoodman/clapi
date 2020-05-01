@@ -1,13 +1,18 @@
-Revision history for toutr repository
+Revision history for clapi repository
 ================
 Nathan (Nat) Goodman
-February 26, 2020
+May 1, 2020
 
 <!-- NEWS.md is generated from NEWS.Rmd. Please edit that file -->
 Release 0.10 2020-02-26
 -----------------------
 
 First version. Contains boilerplate files such as this one.
+
+Release 0.11 2020-05-DD
+-----------------------
+
+Repo renamed from `toutr` More TBD
 
 Copyright & License
 -------------------

@@ -1,7 +1,7 @@
 ---
-title: "Revision history for toutr repository"
+title: "Revision history for clapi repository"
 author: "Nathan (Nat) Goodman"
-date: "February 26, 2020"
+date: "May 1, 2020"
 output:
   pdf_document: default
   html_document: default
@@ -16,6 +16,12 @@ urlcolor: blue
 ## Release 0.10 2020-02-26
 
 First version. Contains boilerplate files such as this one.
+
+## Release 0.11 2020-05-DD
+
+Repo renamed from `toutr`
+More TBD
+
 
 ## Copyright & License
 

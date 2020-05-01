@@ -1,10 +1,10 @@
-Exploring Statistical Issues Inspired by Taxpayer Outreach
+Using R Classes for Consistent APIs
 ================
 Nathan (Nat) Goodman
-February 26, 2020
+May 1, 2020
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
-A collection of R scripts and documents exploring statistical issues inspired by NBER Working Paper No. 2653, "Health Insurance and Mortality: Experimental Evidence from Taxpayer Outreach" by Jacob Goldin, Ithai Z. Lurie, and Janet McCubbin, December 2019. More TBD.
+A collection of R scripts and documents exploring the use of R classes as a mean to achieve consistent APIs. More TBD.
 
 **THE SOFTWARE IS A WORK IN PROGRESS. THE CODE IS ROUGH and SOFTWARE DOCUMENTATION NONEXISTENT. MUCH OF THE CODE DOESN'T WORK!! PLEASE GET IN TOUCH IF YOU NEED HELP**
 
@@ -20,7 +20,7 @@ Comments Please!
 
 Please post comments on [Twitter](https://twitter.com/gnatgoodman) or [Facebook](https://www.facebook.com/nathan.goodman.3367), or contact me by email <natg@shore.net>.
 
-Please report bugs, other software problems, and feature requests using the [GitHub Issue Tracker](https://github.com/natgoodman/nudge/issues). I will be notified, and you'll be apprised of progress. As already noted, the software is still rough and software documentation nonexistent.
+Please report bugs, other software problems, and feature requests using the [GitHub Issue Tracker](https://github.com/natgoodman/clapi/issues). I will be notified, and you'll be apprised of progress. As already noted, the software is still rough and software documentation nonexistent.
 
 Copyright & License
 -------------------
